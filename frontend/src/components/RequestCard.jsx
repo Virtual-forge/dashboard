@@ -2,8 +2,10 @@ import { useState } from "react";
 
 export default function RequestCard({ request, onResolve }) {
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  async function handle(decision) {
+  async function handle(e, decision) {
+    e.stopPropagation(); // don't toggle the dropdown when clicking a button
     setBusy(true);
     try {
       await onResolve(request.id, decision);
@@ -15,47 +17,73 @@ export default function RequestCard({ request, onResolve }) {
   const isPending = request.status === "pending";
 
   return (
-    <div className={`card status-${request.status}`}>
-      <div className="card-header">
-        <span className="tool-name">{request.tool_name}</span>
-        <span className={`badge badge-${request.status}`}>{request.status}</span>
-      </div>
+    <div className={`row status-${request.status} ${open ? "open" : ""}`}>
+      <button
+        type="button"
+        className="row-header"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="chevron">▶</span>
 
-      {request.context && <p className="context">{request.context}</p>}
+        <span className="row-summary">
+          <span className="tool-name">{request.tool_name}</span>
+          <span className={`badge badge-${request.status}`}>{request.status}</span>
+          {request.requested_by && (
+            <span className="row-requester">by {request.requested_by}</span>
+          )}
+        </span>
 
-      <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
+        <span className="row-actions">
+          {isPending ? (
+            <>
+              <button
+                type="button"
+                className="approve"
+                disabled={busy}
+                onClick={(e) => handle(e, "approved")}
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                className="block"
+                disabled={busy}
+                onClick={(e) => handle(e, "rejected")}
+              >
+                Block
+              </button>
+            </>
+          ) : (
+            <span className="resolved-by">
+              {request.status === "approved" ? "Approved" : "Blocked"} by{" "}
+              {request.resolved_by || "—"}
+            </span>
+          )}
+        </span>
+      </button>
 
-      <div className="meta">
-        {request.requested_by && <span>Requested by {request.requested_by}</span>}
-        {request.agent_name && <span>Agent: {request.agent_name}</span>}
-        <span>{new Date(request.created_at).toLocaleString()}</span>
-      </div>
+      {open && (
+        <div className="row-details">
+          {request.context && <p className="context">{request.context}</p>}
 
-      {!isPending && request.resolved_by && (
-        <div className="meta resolved">
-          {request.status === "approved" ? "Approved" : "Blocked"} by{" "}
-          {request.resolved_by}
-          {request.resolved_at &&
-            ` on ${new Date(request.resolved_at).toLocaleString()}`}
-        </div>
-      )}
+          <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
 
-      {isPending && (
-        <div className="actions">
-          <button
-            className="approve"
-            disabled={busy}
-            onClick={() => handle("approved")}
-          >
-            Approve
-          </button>
-          <button
-            className="block"
-            disabled={busy}
-            onClick={() => handle("rejected")}
-          >
-            Block
-          </button>
+          <div className="meta">
+            {request.requested_by && <span>Requested by {request.requested_by}</span>}
+            {request.agent_name && <span>Agent: {request.agent_name}</span>}
+            {request.run_id && <span>Run: {request.run_id}</span>}
+            <span>Created {new Date(request.created_at).toLocaleString()}</span>
+          </div>
+
+          {!isPending && request.resolved_by && (
+            <div className="meta resolved">
+              {request.status === "approved" ? "Approved" : "Blocked"} by{" "}
+              {request.resolved_by}
+              {request.resolved_at &&
+                ` on ${new Date(request.resolved_at).toLocaleString()}`}
+            </div>
+          )}
         </div>
       )}
     </div>

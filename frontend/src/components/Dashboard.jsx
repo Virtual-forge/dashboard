@@ -73,7 +73,7 @@ export default function Dashboard({ email, onLogout }) {
         <p className="empty">No {tab === "all" ? "" : tab} requests.</p>
       )}
 
-      <div className="grid">
+      <div className="list">
         {requests.map((r) => (
           <RequestCard key={r.id} request={r} onResolve={handleResolve} />
         ))}
