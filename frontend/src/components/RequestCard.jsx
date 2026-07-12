@@ -27,10 +27,15 @@ export default function RequestCard({ request, onResolve }) {
         <span className="chevron">▶</span>
 
         <span className="row-summary">
-          <span className="tool-name">{request.tool_name}</span>
-          <span className={`badge badge-${request.status}`}>{request.status}</span>
-          {request.requested_by && (
-            <span className="row-requester">by {request.requested_by}</span>
+          <span className="row-summary-top">
+            <span className="tool-name">{request.tool_name}</span>
+            <span className={`badge badge-${request.status}`}>{request.status}</span>
+            {request.requested_by && (
+              <span className="row-requester">by {request.requested_by}</span>
+            )}
+          </span>
+          {request.tool_description && (
+            <span className="tool-description">{request.tool_description}</span>
           )}
         </span>
 
@@ -65,13 +70,16 @@ export default function RequestCard({ request, onResolve }) {
 
       {open && (
         <div className="row-details">
+          {request.tool_description && (
+            <p className="tool-description-full">{request.tool_description}</p>
+          )}
           {request.context && <p className="context">{request.context}</p>}
 
           <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
 
           <div className="meta">
             {request.requested_by && <span>Requested by {request.requested_by}</span>}
-            {request.agent_name && <span>Agent: {request.agent_name}</span>}
+            {request.agent_id && <span>Agent: {request.agent_id}</span>}
             {request.run_id && <span>Run: {request.run_id}</span>}
             <span>Created {new Date(request.created_at).toLocaleString()}</span>
           </div>

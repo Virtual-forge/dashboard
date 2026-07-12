@@ -81,21 +81,25 @@ async def list_approvals(
         if status == "all":
             rows = await conn.fetch(
                 """
-                SELECT id, run_id, agent_id, tool_name, tool_args, context,
-                       user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
-                FROM ai.agno_approvals
-                ORDER BY created_at DESC
+                SELECT a.id, a.run_id, a.agent_id, a.tool_name, td.description AS tool_description,
+                       a.tool_args, a.context, a.user_id as requested_by, a.status, a.resolved_by,
+                       to_timestamp(a.resolved_at) as resolved_at, to_timestamp(a.created_at) as created_at
+                FROM ai.agno_approvals a
+                LEFT JOIN tool_descriptions td ON td.tool_name = a.tool_name
+                ORDER BY a.created_at DESC
                 LIMIT 200
                 """
             )
         else:
             rows = await conn.fetch(
                 """
-                SELECT id, run_id, agent_id, tool_name, tool_args, context,
-                       user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
-                FROM ai.agno_approvals
-                WHERE status = $1
-                ORDER BY created_at DESC
+                SELECT a.id, a.run_id, a.agent_id, a.tool_name, td.description AS tool_description,
+                       a.tool_args, a.context, a.user_id as requested_by, a.status, a.resolved_by,
+                       to_timestamp(a.resolved_at) as resolved_at, to_timestamp(a.created_at) as created_at
+                FROM ai.agno_approvals a
+                LEFT JOIN tool_descriptions td ON td.tool_name = a.tool_name
+                WHERE a.status = $1
+                ORDER BY a.created_at DESC
                 LIMIT 200
                 """,
                 status,
@@ -114,11 +118,19 @@ async def resolve_approval(
         # expected_status check prevents two admins racing on the same request
         row = await conn.fetchrow(
             """
-            UPDATE ai.agno_approvals
-            SET status = $1, resolved_by = $2, resolved_at = extract(epoch from $3::timestamptz)::bigint
-            WHERE id = $4 AND status = 'pending'
-            RETURNING id, run_id, agent_id, tool_name, tool_args, context,
-                      user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
+            WITH updated AS (
+                UPDATE ai.agno_approvals
+                SET status = $1, resolved_by = $2, resolved_at = extract(epoch from $3::timestamptz)::bigint
+                WHERE id = $4 AND status = 'pending'
+                RETURNING id, run_id, agent_id, tool_name, tool_args, context,
+                          user_id, status, resolved_by, resolved_at, created_at
+            )
+            SELECT u.id, u.run_id, u.agent_id, u.tool_name, td.description AS tool_description,
+                   u.tool_args, u.context, u.user_id as requested_by, u.status, u.resolved_by,
+                   to_timestamp(u.resolved_at) as resolved_at,
+                   to_timestamp(u.created_at) as created_at
+            FROM updated u
+            LEFT JOIN tool_descriptions td ON td.tool_name = u.tool_name
             """,
             body.decision,
             admin_email,

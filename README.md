@@ -33,6 +33,26 @@ only adds an `admins` table and patches in missing columns):
 psql "$DATABASE_URL" -f backend/migrations.sql
 ```
 
+## 1b. Tool descriptions (for readability)
+
+To show each tool's docstring next to its approval requests without touching
+Agno's approvals table, there's a separate `tool_descriptions` table (also
+created by `migrations.sql`) that the backend `LEFT JOIN`s in at read time,
+matched by `tool_name`.
+
+Populate it by editing `backend/sync_tool_descriptions.py` to import your
+real tools (or your `Agent` object, since `agent.tools` already carries
+Agno's parsed `.description` per tool), then run:
+
+```bash
+cd backend
+python sync_tool_descriptions.py
+```
+
+Re-run it whenever you add, rename, or edit a tool. Nothing about this
+touches Agno's own table — it's purely an extra table you own, joined by
+`tool_name`.
+
 ## 2. Backend
 
 ```bash

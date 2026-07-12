@@ -19,6 +19,7 @@ class ApprovalOut(BaseModel):
     run_id: Optional[str] = None
     agent_id: Optional[str] = None
     tool_name: str
+    tool_description: Optional[str] = None
     tool_args: dict[str, Any]
     context: Optional[str] = None
     requested_by: Optional[str] = None
