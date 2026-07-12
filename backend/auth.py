@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta, timezone
-
+from dotenv import load_dotenv
+load_dotenv()
 import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status

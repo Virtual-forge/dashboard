@@ -40,6 +40,15 @@ def row_to_approval(row) -> dict:
         data["tool_args"] = json.loads(tool_args) if tool_args else {}
     elif tool_args is None:
         data["tool_args"] = {}
+        
+    context = data.get("context")
+    if isinstance(context, dict):
+        data["context"] = json.dumps(context)
+    elif isinstance(context, str):
+        pass
+    else:
+        data["context"] = None
+        
     data["id"] = str(data["id"])
     return data
 
@@ -72,9 +81,9 @@ async def list_approvals(
         if status == "all":
             rows = await conn.fetch(
                 """
-                SELECT id, run_id, agent_name, tool_name, tool_args, context,
-                       requested_by, status, resolved_by, resolved_at, created_at
-                FROM approvals
+                SELECT id, run_id, agent_id, tool_name, tool_args, context,
+                       user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
+                FROM ai.agno_approvals
                 ORDER BY created_at DESC
                 LIMIT 200
                 """
@@ -82,9 +91,9 @@ async def list_approvals(
         else:
             rows = await conn.fetch(
                 """
-                SELECT id, run_id, agent_name, tool_name, tool_args, context,
-                       requested_by, status, resolved_by, resolved_at, created_at
-                FROM approvals
+                SELECT id, run_id, agent_id, tool_name, tool_args, context,
+                       user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
+                FROM ai.agno_approvals
                 WHERE status = $1
                 ORDER BY created_at DESC
                 LIMIT 200
@@ -105,11 +114,11 @@ async def resolve_approval(
         # expected_status check prevents two admins racing on the same request
         row = await conn.fetchrow(
             """
-            UPDATE approvals
-            SET status = $1, resolved_by = $2, resolved_at = $3
+            UPDATE ai.agno_approvals
+            SET status = $1, resolved_by = $2, resolved_at = extract(epoch from $3::timestamptz)::bigint
             WHERE id = $4 AND status = 'pending'
-            RETURNING id, run_id, agent_name, tool_name, tool_args, context,
-                      requested_by, status, resolved_by, resolved_at, created_at
+            RETURNING id, run_id, agent_id, tool_name, tool_args, context,
+                      user_id as requested_by, status, resolved_by, to_timestamp(resolved_at) as resolved_at, to_timestamp(created_at) as created_at
             """,
             body.decision,
             admin_email,

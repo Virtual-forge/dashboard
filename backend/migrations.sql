@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE TABLE IF NOT EXISTS approvals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     run_id TEXT,
-    agent_name TEXT,
+    agent_id TEXT,
     tool_name TEXT NOT NULL,
     tool_args JSONB NOT NULL DEFAULT '{}'::jsonb,
     context TEXT,              -- description / reasoning for the request

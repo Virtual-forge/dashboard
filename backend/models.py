@@ -17,7 +17,7 @@ class LoginResponse(BaseModel):
 class ApprovalOut(BaseModel):
     id: str
     run_id: Optional[str] = None
-    agent_name: Optional[str] = None
+    agent_id: Optional[str] = None
     tool_name: str
     tool_args: dict[str, Any]
     context: Optional[str] = None
