@@ -38,3 +38,15 @@ ALTER TABLE approvals ADD COLUMN IF NOT EXISTS requested_by TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals (status);
 CREATE INDEX IF NOT EXISTS idx_approvals_created_at ON approvals (created_at DESC);
+
+-- Human-readable tool descriptions, kept in a table WE own (public schema),
+-- completely separate from Agno's `ai.agno_approvals`. The backend LEFT
+-- JOINs this onto ai.agno_approvals by tool_name at read time — Agno's
+-- table is never touched. Populate it by running
+--   python sync_tool_descriptions.py
+-- any time you add/rename a tool, or upsert rows by hand.
+CREATE TABLE IF NOT EXISTS tool_descriptions (
+    tool_name TEXT PRIMARY KEY,
+    description TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
