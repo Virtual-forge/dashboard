@@ -1,10 +1,20 @@
 import json
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-
+import asyncio
+from approval_listener import run_approval_listener
+from jira_webhook import router as jira_router
+from database import DATABASE_URL 
 from dotenv import load_dotenv
 
 load_dotenv()  # must run before importing auth/database, which read env vars at import time
+
+# Configure logging to show INFO level messages
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,11 +27,14 @@ from models import ApprovalOut, LoginRequest, LoginResponse, ResolveRequest
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
+    listener_task = asyncio.create_task(run_approval_listener(DATABASE_URL))
     yield
+    listener_task.cancel()
     await close_pool()
 
-
 app = FastAPI(title="Agent Approval Dashboard API", lifespan=lifespan)
+
+app.include_router(jira_router)
 
 # In production, replace "*" with your actual frontend origin.
 app.add_middleware(
@@ -85,7 +98,7 @@ async def list_approvals(
                        a.tool_args, a.context, a.user_id as requested_by, a.status, a.resolved_by,
                        to_timestamp(a.resolved_at) as resolved_at, to_timestamp(a.created_at) as created_at
                 FROM ai.agno_approvals a
-                LEFT JOIN tool_descriptions td ON td.tool_name = a.tool_name
+                LEFT JOIN ai.tool_descriptions td ON td.tool_name = a.tool_name
                 ORDER BY a.created_at DESC
                 LIMIT 200
                 """
@@ -97,7 +110,7 @@ async def list_approvals(
                        a.tool_args, a.context, a.user_id as requested_by, a.status, a.resolved_by,
                        to_timestamp(a.resolved_at) as resolved_at, to_timestamp(a.created_at) as created_at
                 FROM ai.agno_approvals a
-                LEFT JOIN tool_descriptions td ON td.tool_name = a.tool_name
+                LEFT JOIN ai.tool_descriptions td ON td.tool_name = a.tool_name
                 WHERE a.status = $1
                 ORDER BY a.created_at DESC
                 LIMIT 200
@@ -130,7 +143,7 @@ async def resolve_approval(
                    to_timestamp(u.resolved_at) as resolved_at,
                    to_timestamp(u.created_at) as created_at
             FROM updated u
-            LEFT JOIN tool_descriptions td ON td.tool_name = u.tool_name
+            LEFT JOIN ai.tool_descriptions td ON td.tool_name = u.tool_name
             """,
             body.decision,
             admin_email,

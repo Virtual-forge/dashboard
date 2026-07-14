@@ -223,19 +223,12 @@ body {
 }
 
 .tool-description {
-  font-size: 0.8rem;
-  color: #6b7280;
+  font-size: 0.9rem;
+  color: #4b5563;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-.tool-description-full {
-  font-size: 0.85rem;
-  color: #4b5563;
-  font-style: italic;
-  margin: 0 0 0.6rem;
 }
 
 .tool-name {
@@ -315,6 +308,36 @@ body {
   border-top: 1px solid #f1f1f1;
   margin-top: -1px;
   padding-top: 0.75rem;
+}
+
+.details-list {
+  margin: 0 0 0.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+}
+
+.details-list dt {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.details-list dt::after {
+  content: ":";
+}
+
+.details-list dd {
+  font-size: 0.9rem;
+  color: #1a1d21;
+  margin: 0;
+  word-break: break-word;
+}
+
+.tool-name-detail {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
 }
 
 .context {

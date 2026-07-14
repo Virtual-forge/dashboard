@@ -70,16 +70,33 @@ export default function RequestCard({ request, onResolve }) {
 
       {open && (
         <div className="row-details">
-          {request.tool_description && (
-            <p className="tool-description-full">{request.tool_description}</p>
-          )}
-          {request.context && <p className="context">{request.context}</p>}
+          <dl className="details-list">
+            {request.tool_description && (
+              <>
+                <dt>Description</dt>
+                <dd>{request.tool_description}</dd>
+              </>
+            )}
+            <dt>Tool name</dt>
+            <dd className="tool-name-detail">{request.tool_name}</dd>
 
-          <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
+            {request.agent_id && (
+              <>
+                <dt>Agent name</dt>
+                <dd>{request.agent_id}</dd>
+              </>
+            )}
+
+            <dt>Args</dt>
+            <dd>
+              <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
+            </dd>
+          </dl>
+
+          {request.context && <p className="context">{request.context}</p>}
 
           <div className="meta">
             {request.requested_by && <span>Requested by {request.requested_by}</span>}
-            {request.agent_id && <span>Agent: {request.agent_id}</span>}
             {request.run_id && <span>Run: {request.run_id}</span>}
             <span>Created {new Date(request.created_at).toLocaleString()}</span>
           </div>

@@ -19,20 +19,30 @@ from database import DATABASE_URL
 
 # --- EDIT THIS: point at the tools your agents actually use ---------------
 #
-# Option A — import the raw functions directly:
+# Option A — hardcode name -> description pairs, no imports needed.
+# Safest if importing your agent module has side effects (e.g. it connects
+# to the DB or starts running on import). Just copy each tool's docstring
+# in by hand:
+#   TOOLS_MANUAL = {
+#       "send_email": "Sends an email to the given address with subject and body.",
+#       "delete_file": "Permanently deletes a file from the workspace.",
+#   }
+#
+# Option B — import the raw functions directly (only if your tools live in
+# a module with NO side effects at import time — no agent creation, no
+# server startup, no DB connections outside of what asyncpg here does):
 #   from my_agents.tools import send_email, delete_file, refund_order
 #   TOOLS = [send_email, delete_file, refund_order]
 #
-# Option B — import your Agent object and read its registered tools
+# Option C — import your Agent object and read its registered tools
 # (Agno stores them as Function objects on `agent.tools`, each already
-# carrying a `.name` and a `.description` built from the docstring):
+# carrying a `.name` and a `.description` built from the docstring).
+# Only safe if creating the Agent object itself has no side effects:
 #   from my_agents.agent import my_agent
 #   TOOLS = my_agent.tools
-#
-# You can also mix agents:
-#   TOOLS = agent_one.tools + agent_two.tools
 # ----------------------------------------------------------------------------
 TOOLS = []
+TOOLS_MANUAL: dict[str, str] = {}
 
 
 def extract_name_and_description(tool) -> tuple[str, str]:
@@ -52,9 +62,9 @@ def extract_name_and_description(tool) -> tuple[str, str]:
 
 
 async def main() -> None:
-    if not TOOLS:
+    if not TOOLS and not TOOLS_MANUAL:
         print(
-            "TOOLS is empty — edit sync_tool_descriptions.py to import your real tools "
+            "TOOLS and TOOLS_MANUAL are both empty — edit sync_tool_descriptions.py "
             "before running this script."
         )
         return
@@ -63,19 +73,26 @@ async def main() -> None:
     try:
         for tool in TOOLS:
             name, description = extract_name_and_description(tool)
-            await conn.execute(
-                """
-                INSERT INTO tool_descriptions (tool_name, description, updated_at)
-                VALUES ($1, $2, now())
-                ON CONFLICT (tool_name)
-                DO UPDATE SET description = EXCLUDED.description, updated_at = now()
-                """,
-                name,
-                description,
-            )
-            print(f"synced: {name}")
+            await upsert(conn, name, description)
+
+        for name, description in TOOLS_MANUAL.items():
+            await upsert(conn, name, description)
     finally:
         await conn.close()
+
+
+async def upsert(conn, name: str, description: str) -> None:
+    await conn.execute(
+        """
+        INSERT INTO ai.tool_descriptions (tool_name, description, updated_at)
+        VALUES ($1, $2, now())
+        ON CONFLICT (tool_name)
+        DO UPDATE SET description = EXCLUDED.description, updated_at = now()
+        """,
+        name,
+        description,
+    )
+    print(f"synced: {name}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 -- Run this once against your Postgres database:
 --   psql "$DATABASE_URL" -f migrations.sql
 
+CREATE SCHEMA IF NOT EXISTS ai;
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- for gen_random_uuid()
 
 -- Admins who can log into the dashboard and approve/block requests.
@@ -19,7 +21,7 @@ CREATE TABLE IF NOT EXISTS admins (
 -- in case Agno's default schema doesn't already have them. Check your real
 -- columns first with:  \d approvals   in psql, and adjust backend/database.py
 -- if your column names differ from what's below.
-CREATE TABLE IF NOT EXISTS approvals (
+CREATE TABLE IF NOT EXISTS ai.approvals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     run_id TEXT,
     agent_id TEXT,
@@ -33,19 +35,19 @@ CREATE TABLE IF NOT EXISTS approvals (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE approvals ADD COLUMN IF NOT EXISTS context TEXT;
-ALTER TABLE approvals ADD COLUMN IF NOT EXISTS requested_by TEXT;
+ALTER TABLE ai.approvals ADD COLUMN IF NOT EXISTS context TEXT;
+ALTER TABLE ai.approvals ADD COLUMN IF NOT EXISTS requested_by TEXT;
 
-CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals (status);
-CREATE INDEX IF NOT EXISTS idx_approvals_created_at ON approvals (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_approvals_status ON ai.approvals (status);
+CREATE INDEX IF NOT EXISTS idx_approvals_created_at ON ai.approvals (created_at DESC);
 
--- Human-readable tool descriptions, kept in a table WE own (public schema),
+-- Human-readable tool descriptions, kept in a table WE own (ai schema),
 -- completely separate from Agno's `ai.agno_approvals`. The backend LEFT
 -- JOINs this onto ai.agno_approvals by tool_name at read time — Agno's
 -- table is never touched. Populate it by running
 --   python sync_tool_descriptions.py
 -- any time you add/rename a tool, or upsert rows by hand.
-CREATE TABLE IF NOT EXISTS tool_descriptions (
+CREATE TABLE IF NOT EXISTS ai.tool_descriptions (
     tool_name TEXT PRIMARY KEY,
     description TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
