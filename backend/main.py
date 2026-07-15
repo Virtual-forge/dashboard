@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import asyncio
 from approval_listener import run_approval_listener
 from jira_webhook import router as jira_router
+from jira_dashboard import router as jira_dashboard_router
+from chatbot import router as chatbot_router
 from database import DATABASE_URL 
 from dotenv import load_dotenv
 
@@ -35,6 +37,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Agent Approval Dashboard API", lifespan=lifespan)
 
 app.include_router(jira_router)
+app.include_router(jira_dashboard_router)
+app.include_router(chatbot_router)
 
 # In production, replace "*" with your actual frontend origin.
 app.add_middleware(

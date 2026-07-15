@@ -1,0 +1,7 @@
+{
+  "fields": {
+    "project": { "key": "SCRUM" },
+    "issuetype": { "name": "Task" },
+    "summary": "Test issue from curl"
+  }
+}

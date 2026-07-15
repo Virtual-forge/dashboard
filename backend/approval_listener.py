@@ -37,7 +37,8 @@ async def _claim_pending_ids(conn: asyncpg.Connection) -> list[str]:
         SELECT a.id
         FROM ai.agno_approvals a
         LEFT JOIN jira_sync js ON js.approval_id = a.id
-        WHERE a.status = 'pending' AND js.approval_id IS NULL
+        WHERE js.approval_id IS NULL
+          AND (a.status = 'pending' OR a.approval_type = 'audit')
         """
     )
     claimed_ids: list[str] = []
@@ -100,12 +101,18 @@ async def _sync_one(pool: asyncpg.Pool, approval_id: str) -> None:
         logger.warning("Approval %s claimed but not found (deleted?)", approval_id)
         return
 
-    if row["status"] != "pending":
-        # Resolved between claim and now -- skip creating a Jira issue
-        # for something already decided.
+    is_audit = row.get("approval_type") == "audit"
+
+    if not is_audit and row["status"] != "pending":
+        # Resolved between claim and now (required-type only -- audit-type
+        # rows are already resolved by design, see below).
         return
 
     try:
+        # create_approval_issue() now sends the "Approval Type" select
+        # field (Audit / Required) on the issue itself. A Jira Automation
+        # rule reads that field and auto-transitions Audit issues to
+        # Approved -- no guessing at transition IDs from Python anymore.
         issue_key = await create_approval_issue(row)
     except Exception:
         logger.exception("Failed to create Jira issue for approval %s", approval_id)
@@ -121,7 +128,7 @@ async def _sync_one(pool: asyncpg.Pool, approval_id: str) -> None:
             issue_key,
             approval_id,
         )
-    logger.info("Synced approval %s -> Jira issue %s", approval_id, issue_key)
+    logger.info("Synced approval %s -> Jira issue %s%s", approval_id, issue_key, " (audit)" if is_audit else "")
 
 
 async def _claim_and_sync_pending(pool: asyncpg.Pool) -> None:

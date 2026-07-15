@@ -4,7 +4,7 @@ function getToken() {
   return localStorage.getItem("token");
 }
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -54,11 +54,27 @@ export function isLoggedIn() {
 }
 
 export function listApprovals(status = "pending") {
-  return request(`/api/approvals?status=${encodeURIComponent(status)}`);
+  return request(`/api/jira/approvals?status=${encodeURIComponent(status)}`).then(data => {
+    // Transform Jira response to match frontend expectations
+    return data.approvals.map(issue => ({
+      id: issue.issue_key,  // Use issue_key as the identifier
+      issue_key: issue.issue_key,
+      tool_name: issue.tool_name,
+      tool_description: issue.tool_name, // Jira doesn't have description, use tool_name
+      status: issue.status?.toLowerCase() || 'pending',
+      requested_by: issue.assignee,
+      agent_id: issue.agent_id,
+      tool_args: {}, // Jira doesn't have tool_args in the simplified response
+      context: null,
+      run_id: issue.approval_id, // Use approval_id as run_id reference
+      resolved_by: null,
+      approval_type: issue.approval_type,
+    }));
+  });
 }
 
-export function resolveApproval(id, decision) {
-  return request(`/api/approvals/${id}/resolve`, {
+export function resolveApproval(issueKey, decision) {
+  return request(`/api/jira/approvals/${issueKey}/resolve`, {
     method: "POST",
     body: JSON.stringify({ decision }),
   });

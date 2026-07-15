@@ -30,6 +30,7 @@ JIRA_ISSUE_TYPE = os.environ.get("JIRA_ISSUE_TYPE", "Task")
 FIELD_APPROVAL_ID = os.environ.get("JIRA_FIELD_APPROVAL_ID", "customfield_10050")
 FIELD_TOOL_NAME = os.environ.get("JIRA_FIELD_TOOL_NAME", "customfield_10051")
 FIELD_AGENT_ID = os.environ.get("JIRA_FIELD_AGENT_ID", "customfield_10052")
+FIELD_APPROVAL_TYPE = os.environ.get("JIRA_FIELD_APPROVAL_TYPE", "customfield_10053")
 
 _auth = (JIRA_EMAIL, JIRA_API_TOKEN)
 
@@ -88,8 +89,15 @@ def _adf_description(row: dict) -> dict:
 
 
 async def create_approval_issue(row: dict) -> str:
-    """Creates a Jira issue for a pending approval row. Returns the issue
+    """Creates a Jira issue for an approval row. Returns the issue
     key (e.g. "APR-42")."""
+    # Value must match your Jira select field's option text EXACTLY
+    # (case-sensitive). row["approval_type"] is already 'audit' or
+    # 'required' straight from Agno -- use it directly rather than
+    # reformatting, so it always matches whatever casing you used when
+    # creating the field options in Jira.
+    approval_type_value = row.get("approval_type") or "required"
+
     payload = {
         "fields": {
             "project": {"key": JIRA_PROJECT_KEY},
@@ -99,6 +107,7 @@ async def create_approval_issue(row: dict) -> str:
             FIELD_APPROVAL_ID: str(row["id"]),
             FIELD_TOOL_NAME: row["tool_name"],
             FIELD_AGENT_ID: row.get("agent_id") or "",
+            FIELD_APPROVAL_TYPE: {"value": approval_type_value},
         }
     }
 
@@ -108,6 +117,109 @@ async def create_approval_issue(row: dict) -> str:
             json=payload,
             headers={"Content-Type": "application/json"},
         )
-        print("JIRA ERROR RESPONSE BODY:", resp.text)
+        if resp.status_code >= 400:
+            print("JIRA ERROR RESPONSE BODY:", resp.text)
         resp.raise_for_status()
         return resp.json()["key"]
+
+
+async def transition_issue(issue_key: str, target_status_name: str) -> None:
+    """Transitions an issue to the given status by NAME (e.g. "Approved").
+    Jira's create-issue API can't set status directly -- status only moves
+    via workflow transitions, so this is a separate call: list the
+    transitions available from the issue's current status, find the one
+    whose target matches target_status_name, then fire it.
+
+    Used for audit-type approvals: the tool already ran (no gate), so the
+    Jira issue is created purely as a record and should land directly in
+    an already-resolved status rather than sitting in a "needs review"
+    column no human is actually going to act on.
+    """
+    async with httpx.AsyncClient(auth=_auth, timeout=15) as client:
+        resp = await client.get(
+            f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions"
+        )
+        resp.raise_for_status()
+        transitions = resp.json()["transitions"]
+
+        match = next(
+            (t for t in transitions if t["to"]["name"].lower() == target_status_name.lower()),
+            None,
+        )
+        if match is None:
+            available = [t["to"]["name"] for t in transitions]
+            raise ValueError(
+                f"No transition to '{target_status_name}' available from {issue_key}'s "
+                f"current status. Available targets: {available}. "
+                f"(Some workflows require going through intermediate statuses.)"
+            )
+
+        resp = await client.post(
+            f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}/transitions",
+            json={"transition": {"id": match["id"]}},
+        )
+        resp.raise_for_status()
+
+
+# Fields pulled back on every list/search call -- includes your custom
+# fields so the dashboard/chatbot don't need a second round trip per issue.
+_SEARCH_FIELDS = [
+    "summary", "status", "assignee", "created", "updated",
+    FIELD_APPROVAL_ID, FIELD_TOOL_NAME, FIELD_AGENT_ID, FIELD_APPROVAL_TYPE,
+]
+
+
+async def search_issues(jql: str, max_results: int = 50) -> list[dict]:
+    """Searches issues via JQL. Uses POST /rest/api/3/search/jql --
+    the old GET/POST /rest/api/3/search endpoints were fully removed by
+    Atlassian in August 2025, so this is the only endpoint that still works.
+    Pagination uses nextPageToken now instead of startAt; not implemented
+    here since approval volume for a dashboard view is small enough that
+    max_results alone is fine -- add nextPageToken looping if you ever need
+    more than one page.
+    """
+    async with httpx.AsyncClient(auth=_auth, timeout=15) as client:
+        resp = await client.post(
+            f"{JIRA_BASE_URL}/rest/api/3/search/jql",
+            json={"jql": jql, "maxResults": max_results, "fields": _SEARCH_FIELDS},
+            headers={"Content-Type": "application/json"},
+        )
+        if resp.status_code >= 400:
+            print("JIRA SEARCH ERROR:", resp.text)
+        resp.raise_for_status()
+        return resp.json().get("issues", [])
+
+
+async def get_issue(issue_key: str) -> dict:
+    async with httpx.AsyncClient(auth=_auth, timeout=15) as client:
+        resp = await client.get(
+            f"{JIRA_BASE_URL}/rest/api/3/issue/{issue_key}",
+            params={"fields": ",".join(_SEARCH_FIELDS)},
+        )
+        if resp.status_code >= 400:
+            print("JIRA GET ISSUE ERROR:", resp.text)
+        resp.raise_for_status()
+        return resp.json()
+
+
+def simplify_issue(issue: dict) -> dict:
+    """Flattens a raw Jira issue into the shape the dashboard/chatbot want,
+    pulling values out of your custom field IDs by name."""
+    fields = issue.get("fields", {})
+
+    def _select_value(field_id):
+        v = fields.get(field_id)
+        return v.get("value") if isinstance(v, dict) else v
+
+    return {
+        "issue_key": issue["key"],
+        "summary": fields.get("summary"),
+        "status": (fields.get("status") or {}).get("name"),
+        "assignee": ((fields.get("assignee") or {}).get("displayName")),
+        "created": fields.get("created"),
+        "updated": fields.get("updated"),
+        "approval_id": fields.get(FIELD_APPROVAL_ID),
+        "tool_name": fields.get(FIELD_TOOL_NAME),
+        "agent_id": fields.get(FIELD_AGENT_ID),
+        "approval_type": _select_value(FIELD_APPROVAL_TYPE),
+    }

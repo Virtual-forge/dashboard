@@ -38,7 +38,7 @@ DROP TRIGGER IF EXISTS trg_notify_new_approval ON ai.agno_approvals;
 CREATE TRIGGER trg_notify_new_approval
     AFTER INSERT ON ai.agno_approvals
     FOR EACH ROW
-    WHEN (NEW.status = 'pending')
+    WHEN (NEW.status = 'pending' OR NEW.approval_type = 'audit')
     EXECUTE FUNCTION notify_new_approval();
 
 COMMIT;

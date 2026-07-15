@@ -8,7 +8,7 @@ export default function RequestCard({ request, onResolve }) {
     e.stopPropagation(); // don't toggle the dropdown when clicking a button
     setBusy(true);
     try {
-      await onResolve(request.id, decision);
+      await onResolve(request.issue_key || request.id, decision);
     } finally {
       setBusy(false);
     }
