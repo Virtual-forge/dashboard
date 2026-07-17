@@ -73,7 +73,7 @@ export default function ChatWidget() {
   }
 
   return (
-    <>
+    <div className="chat-widget">
       <div className="chat-messages">
         {messages.length === 0 && (
           <p className="empty">Try: "show pending approvals" or "approve SCRUM-5"</p>
@@ -87,7 +87,11 @@ export default function ChatWidget() {
             )}
           </div>
         ))}
-        {loading && <div className="chat-message loading">thinking…</div>}
+        {loading && (
+          <div className="chat-message assistant loading">
+            <span className="spinner" aria-label="Generating response" />
+          </div>
+        )}
         <div ref={scrollRef} />
       </div>
 
@@ -106,6 +110,6 @@ export default function ChatWidget() {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

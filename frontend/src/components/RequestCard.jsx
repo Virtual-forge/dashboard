@@ -18,11 +18,13 @@ export default function RequestCard({ request, onResolve }) {
 
   return (
     <div className={`row status-${request.status} ${open ? "open" : ""}`}>
-      <button
-        type="button"
+      <div
         className="row-header"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
       >
         <span className="chevron">▶</span>
 
@@ -66,7 +68,7 @@ export default function RequestCard({ request, onResolve }) {
             </span>
           )}
         </span>
-      </button>
+      </div>
 
       {open && (
         <div className="row-details">
