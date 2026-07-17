@@ -1382,9 +1382,11 @@ body {
 .chat-widget {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;         /* same fix here */
   overflow: hidden;
 }
+
 
 .chat-messages {
   flex: 1;
@@ -1558,12 +1560,13 @@ body {
   transform: none;
 }
 
-/* Chat Panel (when opened from dashboard) */
 .chat-panel {
+  position: fixed;
+  top: 64px;
+  bottom: 0;
+  height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: var(--surface);
 }
 
 .chat-panel-header {
@@ -1621,4 +1624,145 @@ body {
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border);
   background: var(--surface);
+}
+
+/* ============================================================
+   Agent Request Chart - Stacked Horizontal Bar Chart
+   ============================================================ */
+.agent-chart {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+
+.agent-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.agent-chart-head h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.agent-chart-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.legend-swatch.seg-pending {
+  background: #e3e14b; /* grey */
+}
+
+.legend-swatch.seg-approved {
+  background: var(--cerulean-500);
+}
+
+.legend-swatch.seg-rejected {
+  background: #ef4444; /* red */
+}
+
+.agent-chart-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.agent-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.agent-chart-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-chart-bar-track {
+  flex: 1;
+  position: relative;
+  height: 44px;
+  background: var(--surface-2);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.agent-chart-bar {
+  display: flex;
+  height: 100%;
+  border-radius: var(--radius-xl);
+}
+
+.agent-chart-segment {
+  height: 100%;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  padding-left: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.agent-chart-segment.seg-pending {
+  background: linear-gradient(90deg, #f6f5ac, #e3e14b); /* grey gradient */
+}
+
+.agent-chart-segment.seg-approved {
+  background: linear-gradient(90deg, var(--cerulean-500), var(--cerulean-600));
+  background-image: 
+    linear-gradient(90deg, var(--cerulean-500), var(--cerulean-600)),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255,255,255,0.1) 0,
+      rgba(255,255,255,0.1) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+  background-blend-mode: overlay;
+}
+
+.agent-chart-segment.seg-rejected {
+  background: linear-gradient(90deg, #ef4444, #dc2626); /* red gradient */
+}
+
+.agent-chart-total {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 40px;
+  text-align: right;
 }

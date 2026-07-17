@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { listApprovals, resolveApproval } from "../api.js";
 import RequestCard from "./RequestCard.jsx";
 import ChatWidget from "./ChatWidget.jsx";
+import AgentRequestChart from "./AgentRequestChart.jsx";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -368,6 +369,9 @@ export default function Dashboard({ email, onLogout }) {
 
               {/* Progress Ring Gauge */}
               <ProgressRing requests={filteredRequests} />
+
+              {/* Agent Request Chart */}
+              <AgentRequestChart requests={allRequests} />
             </>
           )}
 
@@ -447,7 +451,7 @@ export default function Dashboard({ email, onLogout }) {
 
       {/* Chat Panel */}
       {showChat && (
-        <div className="chat-panel" style={{ position: "fixed", right: 0, top: "var(--header-h)", bottom: 0, width: "380px", background: "var(--surface)", borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column" }}>
+        <div className="chat-panel" style={{ position: "fixed", right: 0, top: "var(--header-h)", bottom: 0, width: "380px", background: "var(--surface)", borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 }}>
           <div className="chat-header" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Approvals Assistant</h3>
             <button className="chat-close" onClick={() => setShowChat(false)} aria-label="Close chat" style={{ padding: "0.5rem", borderRadius: "var(--radius-md)", border: "none", background: "none", color: "var(--text-secondary)", cursor: "pointer" }}>
@@ -457,7 +461,7 @@ export default function Dashboard({ email, onLogout }) {
               </svg>
             </button>
           </div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
+          <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 }}>
             <ChatWidget />
           </div>
         </div>
