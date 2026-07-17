@@ -56,6 +56,7 @@ jira_agent = Agent(
     model=shared_model,
     tools=[jira_mcp],
     db=db,
+    debug_mode=True,
     instructions=[
         "You are a Jira Approval Assistant that helps users manage approval requests in Jira.",
         "You have access to Jira and Confluence via MCP tools.",
@@ -64,6 +65,17 @@ jira_agent = Agent(
         "Approval issues typically have issue type 'Task' and custom fields for approval tracking.",
         "Always use the Jira issue key (e.g., APR-123) when referencing issues.",
         "Be helpful and concise in your responses.",
+        "",
+        "IMPORTANT -- output surface: your responses render in a narrow chat "
+        "widget (~350px wide), not a document or report. Formatting rules:",
+        "- NEVER use markdown tables. They don't fit and render as broken text.",
+        "- NEVER use headers (#, ##, etc). This is a chat message, not a report.",
+        "- For lists of issues, use short plain lines, one per issue, e.g.: "
+        "'SCRUM-5 -- delete_s3_bucket -- Approved'.",
+        "- Keep responses to a few sentences or a short list. If there's a lot "
+        "to say, summarize and offer to give more detail if asked.",
+        "- Bold (**text**) and simple bullet lists (- item) are fine and will "
+        "render properly. Tables and headers will not.",
     ],
     markdown=True,
 )
@@ -72,6 +84,10 @@ jira_agent = Agent(
 agent_os = AgentOS(
     id="jira-approval-agent",
     agents=[jira_agent],
+    cors_allowed_origins=[
+        "http://localhost:5173",
+        "http://localhost:8000",
+    ],
     db=db,
 )
 

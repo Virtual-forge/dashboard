@@ -8,6 +8,7 @@
 // see the README note on locking this down before any real deployment.
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 const AGENT_OS_URL = import.meta.env.VITE_AGENT_OS_URL || "http://localhost:7777";
 const AGENT_ID = "jira-approval-agent"; // must match the id= in jira_agent.py's AgentOS(...)
@@ -79,7 +80,11 @@ export default function ChatWidget() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`chat-message ${m.role}`}>
-            {m.content}
+            {m.role === "assistant" ? (
+              <ReactMarkdown>{m.content}</ReactMarkdown>
+            ) : (
+              m.content
+            )}
           </div>
         ))}
         {loading && <div className="chat-message loading">thinking…</div>}

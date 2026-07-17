@@ -478,6 +478,46 @@ body {
   font-style: italic;
 }
 
+/* Rendered markdown inside assistant bubbles -- tighten up the default
+   block spacing so it reads like chat text, not a document. */
+.chat-message.assistant p {
+  margin: 0 0 0.5rem 0;
+}
+.chat-message.assistant p:last-child {
+  margin-bottom: 0;
+}
+.chat-message.assistant ul,
+.chat-message.assistant ol {
+  margin: 0.25rem 0 0.5rem 0;
+  padding-left: 1.1rem;
+}
+.chat-message.assistant li {
+  margin-bottom: 0.15rem;
+}
+.chat-message.assistant strong {
+  font-weight: 600;
+}
+.chat-message.assistant code {
+  background: #e5e7eb;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.82em;
+}
+/* Safety net: if the agent ignores the "no tables" instruction anyway,
+   let it scroll horizontally instead of blowing out the bubble width. */
+.chat-message.assistant table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 0.8em;
+  border-collapse: collapse;
+}
+.chat-message.assistant th,
+.chat-message.assistant td {
+  border: 1px solid #d1d5db;
+  padding: 0.25rem 0.5rem;
+}
+
 .chat-input-area {
   padding: 1rem 1.25rem;
   border-top: 1px solid #e5e7eb;
