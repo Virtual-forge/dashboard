@@ -11,8 +11,8 @@ import sys
 
 import asyncpg
 
-from auth import hash_password
-from database import DATABASE_URL
+from helpers.auth import hash_password
+from database.database import DATABASE_URL
 
 
 async def main(email: str, password: str) -> None:

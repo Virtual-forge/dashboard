@@ -3,10 +3,10 @@ import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import asyncio
-from approval_listener import run_approval_listener
-from jira_webhook import router as jira_router
-from jira_dashboard import router as jira_dashboard_router
-from database import DATABASE_URL 
+from jira.approval_listener import run_approval_listener
+from jira.jira_webhook import router as jira_router
+from jira.jira_dashboard import router as jira_dashboard_router
+from database.database import DATABASE_URL 
 from dotenv import load_dotenv
 
 load_dotenv()  # must run before importing auth/database, which read env vars at import time
@@ -20,9 +20,9 @@ logging.basicConfig(
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from auth import create_token, get_current_admin_email, verify_password
-from database import close_pool, get_pool, init_pool
-from models import ApprovalOut, LoginRequest, LoginResponse, ResolveRequest
+from helpers.auth import create_token, get_current_admin_email, verify_password
+from database.database import close_pool, get_pool, init_pool
+from database.models import ApprovalOut, LoginRequest, LoginResponse, ResolveRequest
 
 
 @asynccontextmanager

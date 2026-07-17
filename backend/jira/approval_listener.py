@@ -17,7 +17,7 @@ import logging
 
 import asyncpg
 
-from jira_client import create_approval_issue
+from .jira_client import create_approval_issue
 
 logger = logging.getLogger("jira_approval_listener")
 

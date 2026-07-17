@@ -15,7 +15,7 @@ import inspect
 
 import asyncpg
 
-from database import DATABASE_URL
+from database.database import DATABASE_URL
 
 # --- EDIT THIS: point at the tools your agents actually use ---------------
 #

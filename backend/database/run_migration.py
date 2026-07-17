@@ -6,11 +6,15 @@ from dotenv import load_dotenv
 load_dotenv()
 DATABASE_URL = os.getenv('DATABASE_URL')
 
+# Get the directory of this script to find the SQL file
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SQL_FILE = os.path.join(SCRIPT_DIR, '001_jira_listener_setup.sql')
+
 async def run_migration():
     conn = await asyncpg.connect(DATABASE_URL)
     try:
         # Read the SQL file
-        with open('001_jira_listener_setup.sql', 'r') as f:
+        with open(SQL_FILE, 'r') as f:
             sql = f.read()
         
         # Execute the SQL

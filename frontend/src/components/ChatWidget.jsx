@@ -80,16 +80,20 @@ export default function ChatWidget() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`chat-message ${m.role}`}>
-            {m.role === "assistant" ? (
-              <ReactMarkdown>{m.content}</ReactMarkdown>
-            ) : (
-              m.content
-            )}
+            <div className="chat-bubble">
+              {m.role === "assistant" ? (
+                <ReactMarkdown>{m.content}</ReactMarkdown>
+              ) : (
+                m.content
+              )}
+            </div>
           </div>
         ))}
         {loading && (
           <div className="chat-message assistant loading">
-            <span className="spinner" aria-label="Generating response" />
+            <div className="chat-bubble">
+              <span className="spinner" aria-label="Generating response" />
+            </div>
           </div>
         )}
         <div ref={scrollRef} />

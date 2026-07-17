@@ -70,10 +70,10 @@ const KPI_ICONS = {
 const STATUSES = [
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
-  { key: "rejected", label: "Blocked" },
+  { key: "rejected", label: "Rejected" },
 ];
 
-// Progress Ring Component - Semi-circular gauge
+// Progress Ring Component - Circular gauge only
 function ProgressRing({ requests }) {
   const stats = useMemo(() => {
     const total = requests.length;
@@ -88,62 +88,30 @@ function ProgressRing({ requests }) {
   const offset = circumference - (stats.completionRate / 100) * circumference;
 
   return (
-    <div className="progress-section">
-      <div className="section-header">
-        <h2 className="section-title">Completion Progress</h2>
+    <div className="progress-ring-card">
+      <div className="progress-ring-header">
+        <h2 className="section-title">Approval Rate</h2>
       </div>
-      <div className="progress-ring-wrapper">
-        <div className="progress-ring-container">
-          <svg className="progress-ring-svg" viewBox="0 0 180 180">
-            <defs>
-              <linearGradient id="cerulean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="var(--cerulean-400)" />
-                <stop offset="100%" stopColor="var(--cerulean-600)" />
-              </linearGradient>
-            </defs>
-            <circle className="progress-ring-bg" cx="90" cy="90" r="80" />
-            <circle
-              className="progress-ring-progress"
-              cx="90"
-              cy="90"
-              r="80"
-              style={{ strokeDashoffset: offset }}
-            />
-          </svg>
-          <div className="progress-ring-center">
-            <div className="progress-ring-value">{stats.completionRate}%</div>
-            <div className="progress-ring-label">Complete</div>
-          </div>
-        </div>
-        <div className="progress-stats">
-          <div className="progress-stat">
-            <span className="progress-stat-label">Total Requests</span>
-            <span className="progress-stat-value">{stats.total}</span>
-            <div className="progress-stat-bar">
-              <div className="progress-stat-fill" style={{ width: "100%" }} />
-            </div>
-          </div>
-          <div className="progress-stat">
-            <span className="progress-stat-label">Approved</span>
-            <span className="progress-stat-value" style={{ color: "var(--cerulean-600)" }}>{stats.approved}</span>
-            <div className="progress-stat-bar">
-              <div className="progress-stat-fill" style={{ width: stats.total ? `${(stats.approved / stats.total) * 100}%` : 0 }} />
-            </div>
-          </div>
-          <div className="progress-stat">
-            <span className="progress-stat-label">Pending Review</span>
-            <span className="progress-stat-value" style={{ color: "var(--cerulean-400)" }}>{stats.pending}</span>
-            <div className="progress-stat-bar">
-              <div className="progress-stat-fill" style={{ width: stats.total ? `${(stats.pending / stats.total) * 100}%` : 0 }} />
-            </div>
-          </div>
-          <div className="progress-stat">
-            <span className="progress-stat-label">Blocked</span>
-            <span className="progress-stat-value" style={{ color: "#ef4444" }}>{stats.rejected}</span>
-            <div className="progress-stat-bar">
-              <div className="progress-stat-fill" style={{ width: stats.total ? `${(stats.rejected / stats.total) * 100}%` : 0, background: "linear-gradient(90deg, #ef4444, #f87171)" }} />
-            </div>
-          </div>
+      <div className="progress-ring-container">
+        <svg className="progress-ring-svg" viewBox="0 0 180 180">
+          <defs>
+            <linearGradient id="cerulean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="var(--cerulean-400)" />
+              <stop offset="100%" stopColor="var(--cerulean-600)" />
+            </linearGradient>
+          </defs>
+          <circle className="progress-ring-bg" cx="90" cy="90" r="80" />
+          <circle
+            className="progress-ring-progress"
+            cx="90"
+            cy="90"
+            r="80"
+            style={{ strokeDashoffset: offset }}
+          />
+        </svg>
+        <div className="progress-ring-center">
+          <div className="progress-ring-value">{stats.completionRate}%</div>
+          <div className="progress-ring-label">Approved</div>
         </div>
       </div>
     </div>
@@ -321,57 +289,41 @@ export default function Dashboard({ email, onLogout }) {
             <>
               {/* KPI Summary Cards */}
               <div className="kpi-grid">
-                <div className="kpi-card primary">
+                <div className="kpi-card primary total-requests">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.total}</div>
-                    <span className="kpi-trend positive">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5"></polyline></svg>
-                      +12% vs last week
-                    </span>
+                    <div className="kpi-title">Total Requests</div>
                   </div>
-                  <div className="kpi-value">{counts.total}</div>
-                  <div className="kpi-label">Total Requests</div>
+                  <div className="kpi-value centered">{counts.total}</div>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card pending-review">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.pending}</div>
-                    <span className="kpi-trend">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5"></polyline></svg>
-                      +5% vs last week
-                    </span>
+                    <div className="kpi-title">Pending Review</div>
                   </div>
-                  <div className="kpi-value" style={{ color: "var(--cerulean-500)" }}>{counts.pending}</div>
-                  <div className="kpi-label">Pending Review</div>
+                  <div className="kpi-value centered" style={{ color: "var(--cerulean-500)" }}>{counts.pending}</div>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card approved">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.approved}</div>
-                    <span className="kpi-trend positive">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5"></polyline></svg>
-                      +18% vs last week
-                    </span>
+                    <div className="kpi-title">Approved</div>
                   </div>
-                  <div className="kpi-value" style={{ color: "#10b981" }}>{counts.approved}</div>
-                  <div className="kpi-label">Approved</div>
+                  <div className="kpi-value centered" style={{ color: "#10b981" }}>{counts.approved}</div>
                 </div>
-                <div className="kpi-card">
+                <div className="kpi-card blocked">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.blocked}</div>
-                    <span className="kpi-trend negative">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 18 7 8 7 18 17 8"></polyline></svg>
-                      -3% vs last week
-                    </span>
+                    <div className="kpi-title">Rejected</div>
                   </div>
-                  <div className="kpi-value" style={{ color: "#ef4444" }}>{counts.rejected}</div>
-                  <div className="kpi-label">Blocked</div>
+                  <div className="kpi-value centered" style={{ color: "#ef4444" }}>{counts.rejected}</div>
                 </div>
               </div>
 
-              {/* Progress Ring Gauge */}
-              <ProgressRing requests={filteredRequests} />
-
-              {/* Agent Request Chart */}
-              <AgentRequestChart requests={allRequests} />
+              {/* Progress Ring Gauge & Agent Request Chart - Side by Side */}
+              <div className="dashboard-charts-row">
+                <ProgressRing requests={filteredRequests} />
+                <AgentRequestChart requests={allRequests} />
+              </div>
             </>
           )}
 
@@ -451,8 +403,8 @@ export default function Dashboard({ email, onLogout }) {
 
       {/* Chat Panel */}
       {showChat && (
-        <div className="chat-panel" style={{ position: "fixed", right: 0, top: "var(--header-h)", bottom: 0, width: "380px", background: "var(--surface)", borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 }}>
-          <div className="chat-header" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="chat-panel" style={{ position: "fixed", right: "1.5rem", bottom: "1.5rem", width: "380px", maxHeight: "66vh", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="chat-header" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-2)", borderTopLeftRadius: "var(--radius-xl)", borderTopRightRadius: "var(--radius-xl)" }}>
             <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Approvals Assistant</h3>
             <button className="chat-close" onClick={() => setShowChat(false)} aria-label="Close chat" style={{ padding: "0.5rem", borderRadius: "var(--radius-md)", border: "none", background: "none", color: "var(--text-secondary)", cursor: "pointer" }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -461,48 +413,44 @@ export default function Dashboard({ email, onLogout }) {
               </svg>
             </button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, overflow: "hidden" }}>
             <ChatWidget />
           </div>
         </div>
       )}
 
-      {/* Floating chat toggle button */}
-      <button
-        className="chat-toggle"
-        onClick={() => setShowChat(!showChat)}
-        aria-label={showChat ? "Close chat" : "Open chat"}
-        style={{
-          position: "fixed",
-          bottom: "1.5rem",
-          right: "1.5rem",
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, var(--cerulean-500), var(--cerulean-600))",
-          border: "none",
-          color: "white",
-          cursor: "pointer",
-          boxShadow: "var(--shadow-lg)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 150,
-          transition: "transform 0.2s ease, box-shadow 0.2s ease"
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "var(--shadow-xl)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "var(--shadow-lg)"; }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {showChat ? (
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-          ) : (
-            <>
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </>
-          )}
-        </svg>
-      </button>
+      {/* Floating chat toggle button - only show when chat is closed */}
+      {!showChat && (
+        <button
+          className="chat-toggle"
+          onClick={() => setShowChat(true)}
+          aria-label="Open chat"
+          style={{
+            position: "fixed",
+            bottom: "1.5rem",
+            right: "1.5rem",
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, var(--cerulean-500), var(--cerulean-600))",
+            border: "none",
+            color: "white",
+            cursor: "pointer",
+            boxShadow: "var(--shadow-lg)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 150,
+            transition: "transform 0.2s ease, box-shadow 0.2s ease"
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; e.currentTarget.style.boxShadow = "var(--shadow-xl)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "var(--shadow-lg)"; }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

@@ -32,7 +32,7 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-import jira_client
+from . import jira_client
 
 router = APIRouter()
 

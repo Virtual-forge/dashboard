@@ -51,7 +51,7 @@ class JiraApprovalPayload(BaseModel):
     resolved_by: str | None = None
 
 
-from database import get_pool
+from database.database import get_pool
 
 async def get_db_pool():
     return get_pool()
