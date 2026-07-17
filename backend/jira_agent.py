@@ -1,12 +1,6 @@
 """
 Agno Agent for Jira/Confluence integration served as FastAPI server.
 Run with: uvicorn jira_agent:app --port 7777
-
-Exports:
-- jira_agent: The Agno Agent instance
-- agent_os: The AgentOS instance
-- app: The FastAPI application
-- get_jira_agent(): Convenience function to get the agent instance
 """
 import os
 from fastapi import FastAPI
@@ -14,11 +8,8 @@ from agno.agent import Agent
 from agno.models.nvidia import Nvidia
 from agno.tools.mcp import MCPTools
 from agno.db.postgres import PostgresDb
-from agno.storage.postgres import PostgresStorage
 from agno.os import AgentOS
 from dotenv import load_dotenv
-
-__all__ = ["jira_agent", "agent_os", "app", "get_jira_agent"]
 
 load_dotenv()
 
@@ -40,23 +31,16 @@ db = PostgresDb(
     approvals_table="agno_approvals",
 )
 
-# Initialize PostgresStorage for agent memory
-storage = PostgresStorage(
-    db_url=DATABASE_URL,
-    table_name="agno_agent_memory",
-)
+
 
 # Initialize MCPTools for Jira/Confluence via mcp-atlassian
 jira_mcp = MCPTools(
-    command="uvx",
-    args=["mcp-atlassian"],
+    command="uvx mcp-atlassian",
     env={
         "JIRA_URL": JIRA_BASE_URL,
         "JIRA_USERNAME": JIRA_EMAIL,
         "JIRA_API_TOKEN": JIRA_API_TOKEN,
-        "CONFLUENCE_URL": JIRA_BASE_URL.replace("jira", "confluence").replace(".atlassian.net/", ".atlassian.net/wiki/"),
-        "CONFLUENCE_USERNAME": JIRA_EMAIL,
-        "CONFLUENCE_API_TOKEN": JIRA_API_TOKEN,
+
     },
 )
 
@@ -72,7 +56,6 @@ jira_agent = Agent(
     model=shared_model,
     tools=[jira_mcp],
     db=db,
-    storage=storage,
     instructions=[
         "You are a Jira Approval Assistant that helps users manage approval requests in Jira.",
         "You have access to Jira and Confluence via MCP tools.",
@@ -82,7 +65,6 @@ jira_agent = Agent(
         "Always use the Jira issue key (e.g., APR-123) when referencing issues.",
         "Be helpful and concise in your responses.",
     ],
-    show_tool_calls=True,
     markdown=True,
 )
 
@@ -96,11 +78,6 @@ agent_os = AgentOS(
 # This is the FastAPI app that uvicorn will serve
 app = agent_os.get_app()
 
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7777)
-
-
-def get_jira_agent() -> Agent:
-    """Convenience function to get the Jira agent instance."""
-    return jira_agent
+    agent_os.serve(app="jira_agent:app", reload=True)

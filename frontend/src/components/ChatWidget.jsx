@@ -1,16 +1,22 @@
 // ChatWidget.jsx
-// Drop into your dashboard frontend (e.g. src/components/ChatWidget.jsx)
-// and render it somewhere in your layout, e.g. <ChatWidget /> in App.jsx.
+// Talks DIRECTLY to the AgentOS server (jira_agent.py, its own port --
+// default 7777), NOT through the dashboard backend. This is a separate
+// origin from your dashboard backend, so jira_agent.py's AgentOS must have
+// this origin in cors_allowed_origins or the browser will block it.
 //
-// Talks to POST /api/chat (chatbot.py). Uses the authenticated API client.
+// This is intentionally unauthenticated at the AgentOS level right now --
+// see the README note on locking this down before any real deployment.
 
 import { useState, useRef, useEffect } from "react";
-import { request } from "../api.js";
+
+const AGENT_OS_URL = import.meta.env.VITE_AGENT_OS_URL || "http://localhost:7777";
+const AGENT_ID = "jira-approval-agent"; // must match the id= in jira_agent.py's AgentOS(...)
 
 export default function ChatWidget() {
   const [messages, setMessages] = useState([]); // [{role, content}]
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionId] = useState(() => crypto.randomUUID());
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -27,15 +33,31 @@ export default function ChatWidget() {
     setLoading(true);
 
     try {
-      const data = await request("/api/chat", {
+      // AgentOS run endpoints take form-encoded input, not JSON.
+      const body = new URLSearchParams();
+      body.set("message", text);
+      body.set("stream", "false");
+      body.set("session_id", sessionId); // keeps conversation context across turns
+
+      const res = await fetch(`${AGENT_OS_URL}/agents/${AGENT_ID}/runs`, {
         method: "POST",
-        body: JSON.stringify({ messages: nextMessages }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
       });
-      setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
+
+      if (!res.ok) {
+        throw new Error(`AgentOS returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      setMessages([...nextMessages, { role: "assistant", content: data.content }]);
     } catch (e) {
       setMessages([
         ...nextMessages,
-        { role: "assistant", content: "Something went wrong reaching the chat backend." },
+        {
+          role: "assistant",
+          content: `Couldn't reach the agent at ${AGENT_OS_URL}. Is jira_agent.py running?`,
+        },
       ]);
     } finally {
       setLoading(false);
@@ -50,52 +72,35 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[500px] w-full max-w-md border rounded-lg bg-white shadow-sm">
-      <div className="px-4 py-3 border-b font-medium text-sm text-gray-700">
-        Approvals Assistant
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+    <>
+      <div className="chat-messages">
         {messages.length === 0 && (
-          <div className="text-sm text-gray-400">
-            Try: "show pending approvals" or "approve SCRUM-5"
-          </div>
+          <p className="empty">Try: "show pending approvals" or "approve SCRUM-5"</p>
         )}
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`text-sm rounded-lg px-3 py-2 max-w-[85%] ${
-              m.role === "user"
-                ? "bg-blue-600 text-white ml-auto"
-                : "bg-gray-100 text-gray-800"
-            }`}
-          >
+          <div key={i} className={`chat-message ${m.role}`}>
             {m.content}
           </div>
         ))}
-        {loading && (
-          <div className="text-sm text-gray-400 italic">thinking...</div>
-        )}
+        {loading && <div className="chat-message loading">thinking…</div>}
         <div ref={scrollRef} />
       </div>
 
-      <div className="flex items-center gap-2 p-3 border-t">
-        <input
-          className="flex-1 border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about approvals..."
-          disabled={loading}
-        />
-        <button
-          onClick={send}
-          disabled={loading}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-md disabled:opacity-50"
-        >
-          Send
-        </button>
+      <div className="chat-input-area">
+        <div className="chat-input-row">
+          <input
+            className="chat-input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask about approvals..."
+            disabled={loading}
+          />
+          <button className="chat-send" onClick={send} disabled={loading}>
+            Send
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
