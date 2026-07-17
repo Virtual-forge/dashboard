@@ -403,7 +403,7 @@ export default function Dashboard({ email, onLogout }) {
 
       {/* Chat Panel */}
       {showChat && (
-        <div className="chat-panel" style={{ position: "fixed", right: "1.5rem", bottom: "1.5rem", width: "380px", maxHeight: "66vh", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="chat-panel" style={{ position: "fixed", right: "1.5rem", bottom: "1.5rem", width: "380px", maxHeight: "none", height: "75vh", top: "auto", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-xl)", zIndex: 200, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div className="chat-header" style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface-2)", borderTopLeftRadius: "var(--radius-xl)", borderTopRightRadius: "var(--radius-xl)" }}>
             <h3 style={{ fontSize: "1rem", fontWeight: 600 }}>Approvals Assistant</h3>
             <button className="chat-close" onClick={() => setShowChat(false)} aria-label="Close chat" style={{ padding: "0.5rem", borderRadius: "var(--radius-md)", border: "none", background: "none", color: "var(--text-secondary)", cursor: "pointer" }}>

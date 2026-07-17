@@ -1309,7 +1309,9 @@ body {
   right: 1.5rem;
   bottom: 1.5rem;
   width: 380px;
-  max-height: 66vh;
+  max-height: none;
+  height: 75vh;
+  top: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
