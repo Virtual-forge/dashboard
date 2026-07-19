@@ -101,6 +101,7 @@ export function listApprovals(status = "pending") {
         approval_type: issue.approval_type,
         session_id: parsed.session_id,
         tool: parsed.tool,
+        created_at: issue.created,
         requirements: parsed.requirements,
       };
     });
