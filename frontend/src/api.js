@@ -52,27 +52,60 @@ export function getStoredEmail() {
 export function isLoggedIn() {
   return Boolean(getToken());
 }
+function parseApprovalDescription(description = "") {
+  const get = (label) => {
+    const match = description.match(new RegExp(`${label}:\\s*([^\\n]+)`));
+    return match ? match[1].trim() : null;
+  };
+
+  const getJsonBlock = (label) => {
+    const match = description.match(
+      new RegExp(`${label}:\\s*\`\`\`([\\s\\S]*?)\`\`\``)
+    );
+    if (!match) return null;
+    try {
+      return JSON.parse(match[1].trim());
+    } catch {
+      return null;
+    }
+  };
+
+  return {
+    agent: get("Agent"),
+    run_id: get("Run"),
+    session_id: get("Session"),
+    requested_by: get("Requested by \\(user_id\\)"),
+    tool: get("Tool"),
+    context: getJsonBlock("Context"),
+    requirements: getJsonBlock("Requirements"),
+    tool_args: getJsonBlock("Arguments"),
+  };
+}
 
 export function listApprovals(status = "pending") {
   return request(`/api/jira/approvals?status=${encodeURIComponent(status)}`).then(data => {
-    // Transform Jira response to match frontend expectations
-    return data.approvals.map(issue => ({
-      id: issue.issue_key,  // Use issue_key as the identifier
-      issue_key: issue.issue_key,
-      tool_name: issue.tool_name,
-      tool_description: issue.tool_name, // Jira doesn't have description, use tool_name
-      status: issue.status?.toLowerCase() || 'pending',
-      requested_by: issue.assignee,
-      agent_id: issue.agent_id,
-      tool_args: {}, // Jira doesn't have tool_args in the simplified response
-      context: null,
-      run_id: issue.approval_id, // Use approval_id as run_id reference
-      resolved_by: null,
-      approval_type: issue.approval_type,
-    }));
+    return data.approvals.map(issue => {
+      const parsed = parseApprovalDescription(issue.description);
+      return {
+        id: issue.issue_key,
+        issue_key: issue.issue_key,
+        tool_name: issue.tool_name,
+        tool_description: issue.tool_name,
+        status: issue.status?.toLowerCase() || 'pending',
+        requested_by: parsed.requested_by || issue.assignee,
+        agent_id: issue.agent_id,
+        tool_args: parsed.tool_args || {},
+        context: parsed.context,
+        run_id: parsed.run_id || issue.approval_id,
+        resolved_by: null,
+        approval_type: issue.approval_type,
+        session_id: parsed.session_id,
+        tool: parsed.tool,
+        requirements: parsed.requirements,
+      };
+    });
   });
 }
-
 export function resolveApproval(issueKey, decision) {
   return request(`/api/jira/approvals/${issueKey}/resolve`, {
     method: "POST",

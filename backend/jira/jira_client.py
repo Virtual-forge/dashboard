@@ -164,7 +164,7 @@ async def transition_issue(issue_key: str, target_status_name: str) -> None:
 # Fields pulled back on every list/search call -- includes your custom
 # fields so the dashboard/chatbot don't need a second round trip per issue.
 _SEARCH_FIELDS = [
-    "summary", "status", "assignee", "created", "updated",
+    "summary", "status", "assignee", "created", "updated","description",
     FIELD_APPROVAL_ID, FIELD_TOOL_NAME, FIELD_AGENT_ID, FIELD_APPROVAL_TYPE,
 ]
 
@@ -202,6 +202,26 @@ async def get_issue(issue_key: str) -> dict:
         return resp.json()
 
 
+def _adf_to_text(adf: dict | None) -> str:
+    """Inverse of _adf_description: walks the ADF doc this same client
+    created and reconstructs the plain-text format the frontend parses
+    (labeled lines + ```-fenced JSON blocks). Only needs to handle the
+    node types _adf_description actually emits (paragraph, codeBlock,
+    text) -- it's not a general ADF renderer."""
+    if not adf or not isinstance(adf, dict):
+        return ""
+
+    lines = []
+    for block in adf.get("content", []):
+        text = "".join(
+            run.get("text", "") for run in block.get("content", []) if run.get("type") == "text"
+        )
+        if block.get("type") == "codeBlock":
+            lines.append(f"```\n{text}\n```")
+        else:
+            lines.append(text)
+    return "\n".join(lines)
+
 def simplify_issue(issue: dict) -> dict:
     """Flattens a raw Jira issue into the shape the dashboard/chatbot want,
     pulling values out of your custom field IDs by name."""
@@ -222,4 +242,5 @@ def simplify_issue(issue: dict) -> dict:
         "tool_name": fields.get(FIELD_TOOL_NAME),
         "agent_id": fields.get(FIELD_AGENT_ID),
         "approval_type": _select_value(FIELD_APPROVAL_TYPE),
+        "description": _adf_to_text(fields.get("description")),
     }

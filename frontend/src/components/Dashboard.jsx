@@ -197,11 +197,7 @@ export default function Dashboard({ email, onLogout }) {
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-              <path d="M2 17l10 5 10-5"></path>
-              <path d="M2 12l10 5 10-5"></path>
-            </svg>
+            <img src="/assets/Capgemini_Primary-logo_Capgemini-Blue.png" alt="Capgemini Logo" className="sidebar-logo-img" />
             <span>Approval Center</span>
           </div>
         </div>
@@ -301,21 +297,21 @@ export default function Dashboard({ email, onLogout }) {
                     <div className="kpi-icon">{KPI_ICONS.pending}</div>
                     <div className="kpi-title">Pending Review</div>
                   </div>
-                  <div className="kpi-value centered" style={{ color: "var(--cerulean-500)" }}>{counts.pending}</div>
+                  <div className="kpi-value centered" style={{ color: "var(--cg-yellow)" }}>{counts.pending}</div>
                 </div>
                 <div className="kpi-card approved">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.approved}</div>
                     <div className="kpi-title">Approved</div>
                   </div>
-                  <div className="kpi-value centered" style={{ color: "#10b981" }}>{counts.approved}</div>
+                  <div className="kpi-value centered" style={{ color: "var(--cg-teal)" }}>{counts.approved}</div>
                 </div>
                 <div className="kpi-card blocked">
                   <div className="kpi-header">
                     <div className="kpi-icon">{KPI_ICONS.blocked}</div>
                     <div className="kpi-title">Rejected</div>
                   </div>
-                  <div className="kpi-value centered" style={{ color: "#ef4444" }}>{counts.rejected}</div>
+                  <div className="kpi-value centered" style={{ color: "var(--cg-deep-red  )" }}>{counts.rejected}</div>
                 </div>
               </div>
 

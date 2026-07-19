@@ -1,5 +1,34 @@
 import { useState } from "react";
 
+const STATUS_LABEL = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+function StatusIcon({ status }) {
+  if (status === "approved") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </svg>
+  );
+}
+
 export default function RequestCard({ request, onResolve }) {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
@@ -26,12 +55,16 @@ export default function RequestCard({ request, onResolve }) {
         tabIndex={0}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o); } }}
       >
-        <span className="chevron">▶</span>
+        <span className={`status-icon status-icon-${request.status}`} aria-hidden="true">
+          <StatusIcon status={request.status} />
+        </span>
 
         <span className="row-summary">
           <span className="row-summary-top">
             <span className="tool-name">{request.tool_name}</span>
-            <span className={`badge badge-${request.status}`}>{request.status}</span>
+            <span className={`badge badge-${request.status}`}>
+              {STATUS_LABEL[request.status] || request.status}
+            </span>
             {request.requested_by && (
               <span className="row-requester">by {request.requested_by}</span>
             )}
@@ -50,6 +83,9 @@ export default function RequestCard({ request, onResolve }) {
                 disabled={busy}
                 onClick={(e) => handle(e, "approved")}
               >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
                 Approve
               </button>
               <button
@@ -58,6 +94,9 @@ export default function RequestCard({ request, onResolve }) {
                 disabled={busy}
                 onClick={(e) => handle(e, "rejected")}
               >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
                 Block
               </button>
             </>
@@ -68,10 +107,17 @@ export default function RequestCard({ request, onResolve }) {
             </span>
           )}
         </span>
+
+        <span className={`chevron ${open ? "is-open" : ""}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </span>
       </div>
 
       {open && (
         <div className="row-details">
+          <div className="details-heading">Request details</div>
           <dl className="details-list">
             {request.tool_description && (
               <>
@@ -93,9 +139,16 @@ export default function RequestCard({ request, onResolve }) {
             <dd>
               <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
             </dd>
-          </dl>
 
-          {request.context && <p className="context">{request.context}</p>}
+            {request.requirements && (
+              <>
+                <dt>Details</dt>
+                <dd>
+                  <pre className="args">{JSON.stringify(request.requirements, null, 2)}</pre>
+                </dd>
+              </>
+            )}
+          </dl>
 
           <div className="meta">
             {request.requested_by && <span>Requested by {request.requested_by}</span>}
