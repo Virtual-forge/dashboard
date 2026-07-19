@@ -90,7 +90,7 @@ export function listApprovals(status = "pending") {
         id: issue.issue_key,
         issue_key: issue.issue_key,
         tool_name: issue.tool_name,
-        tool_description: issue.tool_name,
+        tool_description: issue.tool_description,
         status: issue.status?.toLowerCase() || 'pending',
         requested_by: parsed.requested_by || issue.assignee,
         agent_id: issue.agent_id,

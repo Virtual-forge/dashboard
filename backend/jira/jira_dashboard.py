@@ -32,6 +32,7 @@ import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from database.database import get_pool
 from . import jira_client
 
 router = APIRouter()
@@ -41,6 +42,14 @@ JIRA_PROJECT_KEY = os.environ["JIRA_PROJECT_KEY"]
 # Status name your workflow uses for "not yet decided" -- adjust if you
 # renamed the default "To Do" status when setting up Approved/Rejected.
 PENDING_STATUS_NAME = os.environ.get("JIRA_PENDING_STATUS_NAME", "Pending")
+
+
+async def fetch_tool_descriptions() -> dict[str, str]:
+    """Returns {tool_name: description} from ai.tool_descriptions."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT tool_name, description FROM ai.tool_descriptions")
+    return {r["tool_name"]: r["description"] for r in rows}
 
 
 class ResolveRequest(BaseModel):
@@ -57,8 +66,10 @@ async def list_approvals(status: str | None = None):
     jql += " ORDER BY created DESC"
 
     issues = await jira_client.search_issues(jql, max_results=100)
-    return {"approvals": [jira_client.simplify_issue(i) for i in issues]}
-
+    tool_descriptions = await fetch_tool_descriptions()
+    return {
+        "approvals": [jira_client.simplify_issue(i, tool_descriptions) for i in issues]
+    }
 
 @router.get("/api/jira/approvals/{issue_key}")
 async def get_approval(issue_key: str):

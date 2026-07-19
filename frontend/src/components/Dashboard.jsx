@@ -249,7 +249,7 @@ export default function Dashboard({ email, onLogout }) {
                 <line x1="3" y1="18" x2="21" y2="18"></line>
               </svg>
             </button>
-            <h1 className="page-title">Dashboard</h1>
+           
           </div>
           <div className="search-bar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

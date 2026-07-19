@@ -222,14 +222,17 @@ def _adf_to_text(adf: dict | None) -> str:
             lines.append(text)
     return "\n".join(lines)
 
-def simplify_issue(issue: dict) -> dict:
+def simplify_issue(issue: dict, tool_descriptions: dict[str, str] | None = None) -> dict:
     """Flattens a raw Jira issue into the shape the dashboard/chatbot want,
     pulling values out of your custom field IDs by name."""
     fields = issue.get("fields", {})
+    tool_descriptions = tool_descriptions or {}
 
     def _select_value(field_id):
         v = fields.get(field_id)
         return v.get("value") if isinstance(v, dict) else v
+
+    tool_name = fields.get(FIELD_TOOL_NAME)
 
     return {
         "issue_key": issue["key"],
@@ -239,7 +242,8 @@ def simplify_issue(issue: dict) -> dict:
         "created": fields.get("created"),
         "updated": fields.get("updated"),
         "approval_id": fields.get(FIELD_APPROVAL_ID),
-        "tool_name": fields.get(FIELD_TOOL_NAME),
+        "tool_name": tool_name,
+        "tool_description": tool_descriptions.get(tool_name),
         "agent_id": fields.get(FIELD_AGENT_ID),
         "approval_type": _select_value(FIELD_APPROVAL_TYPE),
         "description": _adf_to_text(fields.get("description")),
