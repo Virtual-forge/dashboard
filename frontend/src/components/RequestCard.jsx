@@ -140,14 +140,13 @@ export default function RequestCard({ request, onResolve }) {
               <pre className="args">{JSON.stringify(request.tool_args, null, 2)}</pre>
             </dd>
 
-            {request.requirements && (
-              <>
-                <dt>Details</dt>
-                <dd>
-                  <pre className="args">{JSON.stringify(request.requirements, null, 2)}</pre>
-                </dd>
-              </>
-            )}
+              {request.requirements && (
+                <>
+                  <dt>Details</dt>
+                  <dd><pre className="args">{JSON.stringify(request.requirements, null, 2)}</pre></dd>
+                </>
+              )}
+
           </dl>
 
           <div className="meta">

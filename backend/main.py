@@ -2,8 +2,6 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-import asyncio
-from jira.approval_listener import run_approval_listener
 from jira.jira_webhook import router as jira_router
 from jira.jira_dashboard import router as jira_dashboard_router
 from database.database import DATABASE_URL 
@@ -17,8 +15,10 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+
+import httpx
 
 from helpers.auth import create_token, get_current_admin_email, verify_password
 from database.database import close_pool, get_pool, init_pool
@@ -28,9 +28,7 @@ from database.models import ApprovalOut, LoginRequest, LoginResponse, ResolveReq
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
-    listener_task = asyncio.create_task(run_approval_listener(DATABASE_URL))
     yield
-    listener_task.cancel()
     await close_pool()
 
 app = FastAPI(title="Agent Approval Dashboard API", lifespan=lifespan)
@@ -158,3 +156,67 @@ async def resolve_approval(
             detail="Request not found or already resolved by someone else",
         )
     return row_to_approval(row)
+
+
+async def proxy_agent_request(agent_url: str, request: Request) -> Response:
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(
+                agent_url,
+                content=await request.body(),
+                headers={
+                    key: value
+                    for key, value in request.headers.items()
+                    if key.lower() not in {"host", "content-length"}
+                },
+                params=request.query_params,
+                timeout=60.0,
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to reach local agent service: {exc}",
+            )
+    return Response(
+        content=response.content,
+        status_code=response.status_code,
+        headers={
+            key: value
+            for key, value in response.headers.items()
+            if key.lower() not in {"content-length", "transfer-encoding", "connection", "keep-alive"}
+        },
+    )
+
+
+@app.api_route("/agents/{full_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+async def proxy_agent(full_path: str, request: Request):
+    agent_url = f"http://127.0.0.1:7777/agents/{full_path}"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.request(
+                request.method,
+                agent_url,
+                content=await request.body(),
+                headers={
+                    key: value
+                    for key, value in request.headers.items()
+                    if key.lower() not in {"host", "content-length"}
+                },
+                params=request.query_params,
+                timeout=60.0,
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Failed to reach local agent service: {exc}",
+            )
+    return Response(
+        content=response.content,
+        status_code=response.status_code,
+        headers={
+            key: value
+            for key, value in response.headers.items()
+            if key.lower() not in {"content-length", "transfer-encoding", "connection", "keep-alive"}
+        },
+    )
+    

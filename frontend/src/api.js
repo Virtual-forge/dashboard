@@ -10,6 +10,7 @@ export async function request(path, options = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -81,30 +82,25 @@ function parseApprovalDescription(description = "") {
     tool_args: getJsonBlock("Arguments"),
   };
 }
-
 export function listApprovals(status = "pending") {
   return request(`/api/jira/approvals?status=${encodeURIComponent(status)}`).then(data => {
-    return data.approvals.map(issue => {
-      const parsed = parseApprovalDescription(issue.description);
-      return {
-        id: issue.issue_key,
-        issue_key: issue.issue_key,
-        tool_name: issue.tool_name,
-        tool_description: issue.tool_description,
-        status: issue.status?.toLowerCase() || 'pending',
-        requested_by: parsed.requested_by || issue.assignee,
-        agent_id: issue.agent_id,
-        tool_args: parsed.tool_args || {},
-        context: parsed.context,
-        run_id: parsed.run_id || issue.approval_id,
-        resolved_by: null,
-        approval_type: issue.approval_type,
-        session_id: parsed.session_id,
-        tool: parsed.tool,
-        created_at: issue.created,
-        requirements: parsed.requirements,
-      };
-    });
+    return data.approvals.map(issue => ({
+      id: issue.issue_key,
+      issue_key: issue.issue_key,
+      tool_name: issue.tool_name,
+      tool_description: issue.tool_description,
+      status: issue.status?.toLowerCase() || 'pending',
+      requested_by: issue.requested_by || issue.assignee,
+      agent_id: issue.agent_id,
+      tool_args: issue.tool_args || {},
+      context: issue.context,
+      run_id: issue.run_id,
+      resolved_by: null,
+      approval_type: issue.approval_type,
+      session_id: issue.session_id,
+      created_at: issue.created,
+      requirements: issue.requirements,
+    }));
   });
 }
 export function resolveApproval(issueKey, decision) {

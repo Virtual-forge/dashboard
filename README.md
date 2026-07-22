@@ -237,7 +237,6 @@ dashboard/
 │   ├── jira_webhook.py         # Jira Automation webhook receiver
 │   ├── jira_dashboard.py       # Jira-backed dashboard endpoints
 │   ├── chatbot.py              # Chat widget → Agno agent proxy
-│   ├── approval_listener.py    # Postgres LISTEN/NOTIFY for real-time updates
 │   ├── database.py             # AsyncPG connection pool
 │   ├── auth.py                 # JWT + bcrypt
 │   ├── models.py               # Pydantic models

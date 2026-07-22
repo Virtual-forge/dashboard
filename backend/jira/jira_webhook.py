@@ -28,12 +28,13 @@ Action:   "Send web request"
 
 import os
 import time
-
+from dotenv import load_dotenv
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 router = APIRouter()
 
+load_dotenv()
 JIRA_WEBHOOK_SECRET = os.environ["JIRA_WEBHOOK_SECRET"]
 
 # Jira status names -> your internal approval status values. Confirmed

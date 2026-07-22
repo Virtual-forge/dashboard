@@ -11,18 +11,33 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
 const AGENT_OS_URL = import.meta.env.VITE_AGENT_OS_URL || "http://localhost:7777";
-const AGENT_ID = "jira-approval-agent"; // must match the id= in jira_agent.py's AgentOS(...)
+const AGENT_ID = "approval-demo"; // must match the id= in jira_agent.py's AgentOS(...)
+
+// Polling config for waiting on a paused (needs-approval) run to complete.
+const POLL_INTERVAL_MS = 5000; // check every 5s
+const POLL_MAX_ATTEMPTS = 60; // ~5 minutes total -- tune to your approval SLA
 
 export default function ChatWidget() {
   const [messages, setMessages] = useState([]); // [{role, content}]
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [waitingOnApproval, setWaitingOnApproval] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
   const scrollRef = useRef(null);
+
+  // Guards against a stale poll loop touching state after unmount,
+  // and lets us cancel an in-flight poll if the component goes away.
+  const pollCancelRef = useRef(false);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      pollCancelRef.current = true;
+    };
+  }, []);
 
   async function send() {
     const text = input.trim();
@@ -38,11 +53,17 @@ export default function ChatWidget() {
       const body = new URLSearchParams();
       body.set("message", text);
       body.set("stream", "false");
-      body.set("session_id", sessionId); // keeps conversation context across turns
+      if (sessionId) {
+        body.set("session_id", sessionId); // keep conversation context across turns
+      }
+      body.append("user_id", "hamzalakehayli@gmail.com"); // static email for now
 
       const res = await fetch(`${AGENT_OS_URL}/agents/${AGENT_ID}/runs`, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "ngrok-skip-browser-warning": "true",
+        },
         body: body.toString(),
       });
 
@@ -51,18 +72,77 @@ export default function ChatWidget() {
       }
 
       const data = await res.json();
-      setMessages([...nextMessages, { role: "assistant", content: data.content }]);
+      const responseSessionId = data.session_id || sessionId;
+      if (data.session_id && data.session_id !== sessionId) {
+        setSessionId(data.session_id);
+      }
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+
+      const status = (data.status || "").toUpperCase();
+
+      if (status === "PAUSED") {
+        // Tool call needs approval (Jira). The approval happens out-of-band
+        // (Jira automation hits /continue on the backend directly), so we
+        // poll here until the run is no longer paused, then show the final
+        // assistant message.
+        setWaitingOnApproval(true);
+        pollCancelRef.current = false;
+        pollForCompletion(data.run_id, responseSessionId);
+        return; // keep `loading` true -- pollForCompletion clears it when done
+      }
     } catch (e) {
-      setMessages([
-        ...nextMessages,
+      setMessages((prev) => [
+        ...prev,
         {
           role: "assistant",
           content: `Couldn't reach the agent at ${AGENT_OS_URL}. Is jira_agent.py running?`,
         },
       ]);
-    } finally {
       setLoading(false);
     }
+  }
+
+  async function pollForCompletion(runId, effectiveSessionId) {
+    for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+
+      if (pollCancelRef.current) return; // component unmounted, stop
+
+      try {
+        const res = await fetch(
+          `${AGENT_OS_URL}/sessions/${effectiveSessionId}/runs/${runId}`,
+          { headers: { "ngrok-skip-browser-warning": "true" } }
+        );
+
+        if (!res.ok) continue; // transient error, keep polling
+
+        const data = await res.json();
+        const status = (data.status || "").toUpperCase();
+
+        if (status && status !== "PAUSED") {
+          // Run finished (completed, failed, whatever terminal state) --
+          // show the result and stop polling.
+          setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+          setWaitingOnApproval(false);
+          setLoading(false);
+          return;
+        }
+        // still PAUSED -- keep waiting
+      } catch (e) {
+        // network hiccup -- keep trying
+      }
+    }
+
+    // Gave up after POLL_MAX_ATTEMPTS
+    setWaitingOnApproval(false);
+    setLoading(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Still waiting on approval -- check back later or refresh once it's approved.",
+      },
+    ]);
   }
 
   function handleKeyDown(e) {
@@ -93,6 +173,9 @@ export default function ChatWidget() {
           <div className="chat-message assistant loading">
             <div className="chat-bubble">
               <span className="spinner" aria-label="Generating response" />
+              {waitingOnApproval && (
+                <span className="waiting-label"> Waiting on approval…</span>
+              )}
             </div>
           </div>
         )}
